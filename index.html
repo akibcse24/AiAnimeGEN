@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Image Generator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for an anime-like style -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif; /* Anime-style font */
+            background: linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%); /* Soft anime-like gradient background */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to start to give more space for content */
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: rgba(255, 255, 255, 0.95); /* Slightly transparent white for a dreamy effect */
+            border-radius: 1rem; /* rounded-xl */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+            padding: 2rem; /* p-8 */
+            width: 100%;
+            max-width: 600px; /* max-w-xl */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem; /* space-y-6 */
+            position: relative; /* For absolute positioning of elements */
+        }
+        h1 {
+            color: #4f46e5; /* A vibrant indigo for the title */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1); /* Subtle text shadow */
+        }
+        input[type="text"] {
+            border: 1px solid #a8c0ff; /* Border color matching the background gradient */
+            border-radius: 0.5rem; /* rounded-lg */
+            padding: 0.75rem 1rem; /* px-4 py-3 */
+            width: 100%;
+            font-size: 1rem; /* text-base */
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input[type="text"]:focus {
+            border-color: #6366f1; /* focus:border-indigo-500 */
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); /* focus:ring-indigo-200 */
+        }
+        button {
+            background-color: #6366f1; /* bg-indigo-600 */
+            color: #ffffff; /* text-white */
+            font-weight: 700; /* Bolder font weight for buttons */
+            padding: 0.75rem 1.5rem; /* py-3 px-6 */
+            border-radius: 0.5rem; /* rounded-lg */
+            transition: background-color 0.2s, transform 0.1s;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Subtle button shadow */
+        }
+        button:hover {
+            background-color: #4f46e5; /* hover:bg-indigo-700 */
+            box-shadow: 0 6px 8px -1px rgba(0, 0, 0, 0.15), 0 3px 5px -1px rgba(0, 0, 0, 0.08);
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .loading-indicator {
+            display: none; /* Hidden by default */
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #6366f1; /* Blue */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .image-display {
+            width: 100%;
+            min-height: 200px; /* Placeholder height */
+            background-color: #e2e8f0; /* bg-gray-200 */
+            border-radius: 0.75rem; /* rounded-lg */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; /* Ensure image fits */
+            border: 2px solid #a8c0ff; /* Light border for the image display area */
+        }
+        .image-display img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.75rem; /* rounded-lg */
+            display: block; /* Remove extra space below image */
+        }
+        .error-message {
+            color: #ef4444; /* text-red-500 */
+            font-size: 0.875rem; /* text-sm */
+            text-align: center;
+            display: none;
+        }
+        /* Styling for the Tenor GIF containers */
+        .tenor-gif-container {
+            position: absolute;
+            width: 100px; /* Size of the image */
+            height: 100px;
+            overflow: hidden; /* Hide parts that overflow if aspect ratio is different */
+            z-index: 10; /* Ensure it's above other elements */
+            border-radius: 0.5rem; /* Apply rounded corners to the container */
+        }
+        .tenor-gif-container.right-top {
+            top: -30px; /* Adjust position as needed */
+            right: -30px; /* Adjust position as needed */
+        }
+        .tenor-gif-container.left-top {
+            top: -30px; /* Position for the first left GIF */
+            left: -30px; /* Adjust position as needed */
+        }
+        .tenor-gif-container.left-bottom {
+            top: 80px; /* Position for the second left GIF, below the first */
+            left: -30px; /* Adjust position as needed */
+        }
+        .tenor-gif-container.bottom-right {
+            bottom: -30px; /* Position at the bottom */
+            right: -30px; /* Position at the right */
+        }
+        .tenor-gif-container.bottom-left { /* New class for bottom left */
+            bottom: -30px; /* Position at the bottom */
+            left: -30px; /* Position at the left */
+        }
+        /* Style the iframe created by Tenor embed.js */
+        .tenor-gif-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none; /* Remove default iframe border */
+            border-radius: 0.5rem; /* Apply rounded corners to the iframe */
+        }
+        .image-link-display {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #4f46e5; /* Indigo color for the link */
+            word-break: break-all; /* Break long URLs */
+            display: none; /* Hidden by default */
+        }
+        .image-link-display a {
+            color: #4f46e5;
+            text-decoration: underline;
+        }
+        .image-link-display a:hover {
+            color: #3f36c4;
+        }
+        @media (min-width: 640px) {
+            button {
+                width: auto; /* Auto width on larger screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Tenor GIF Embed (Left Side - Top) -->
+        <div class="tenor-gif-container left-top">
+            <div class="tenor-gif-embed" data-postid="16016143" data-share-method="host" data-aspect-ratio="1.00629" data-width="100%">
+                <a href="https://tenor.com/view/jumping-blushing-eyes-closed-anime-gif-16016143">Jumping Blushing Sticker</a>from <a href="https://tenor.com/search/jumping-stickers">Jumping Stickers</a>
+            </div>
+        </div>
+
+        <!-- Tenor GIF Embed (Left Side - Bottom) -->
+        <div class="tenor-gif-container left-bottom">
+            <div class="tenor-gif-embed" data-postid="13142091770384656858" data-share-method="host" data-aspect-ratio="1.66" data-width="100%"><a href="https://tenor.com/view/anya-anya-forger-anya-spy-x-family-anime-anya-spy-x-family-spy-x-family-gif-13142091770384656858">Anya Anya Forger GIF</a>from <a href="https://tenor.com/search/anya-gifs">Anya GIFs</a></div>
+        </div>
+
+        <!-- Tenor GIF Embed (Right Side - Top) -->
+        <div class="tenor-gif-container right-top">
+          <div class="tenor-gif-embed" data-postid="6257379436990450051" data-share-method="host" data-aspect-ratio="1" data-width="100%"><a href="https://tenor.com/view/kawaii-gif-6257379436990450051">Kawaii GIF</a>from <a href="https://tenor.com/search/kawaii-gifs">Kawaii GIFs</a></div>         </div>
+
+        <!-- Tenor GIF Embed (Bottom Right Corner) -->
+        <div class="tenor-gif-container bottom-right">
+            <div class="tenor-gif-embed" data-postid="14038599" data-share-method="host" data-aspect-ratio="1" data-width="100%">
+                <a href="https://tenor.com/view/anime-dancing-dance-gif-14038599">Anime Dancing Sticker</a>from <a href="https://tenor.com/search/anime-stickers">Anime Stickers</a>
+            </div>
+        </div>
+
+        <!-- Tenor GIF Embed (Bottom Left Corner) -->
+        <div class="tenor-gif-container bottom-left">
+            <div class="tenor-gif-embed" data-postid="14039055" data-share-method="host" data-aspect-ratio="1" data-width="100%"><a href="https://tenor.com/view/kawaii-anime-bunny-girl-cute-gif-14039055">Kawaii Anime Sticker</a>from <a href="https://tenor.com/search/kawaii-stickers">Kawaii Stickers</a></div>
+        </div>
+
+        <h1 class="text-3xl font-bold text-gray-800">Anime Image Generator</h1>
+
+        <div class="w-full">
+            <label for="prompt-input" class="block text-gray-700 text-sm font-medium mb-2">Enter your prompt:</label>
+            <input type="text" id="prompt-input" placeholder="e.g., A cute anime girl with pink hair and cat ears" class="w-full">
+        </div>
+
+        <button id="generate-button">Generate Image</button>
+
+        <div id="loading-indicator" class="loading-indicator"></div>
+
+        <div id="image-display" class="image-display">
+            <img id="generated-image" src="" alt="" class="hidden">
+        </div>
+
+        <p id="error-message" class="error-message"></p>
+
+        <!-- New element to display the image link -->
+        <div id="image-link-display" class="image-link-display">
+            Image Link: <a id="generated-image-link" href="#" target="_blank"></a>
+        </div>
+
+        <!-- "Powered by StarryAI" text at the bottom -->
+        <div class="text-center text-gray-600 text-sm mt-4">
+            Powered by StarryAI ❤️
+        </div>
+    </div>
+
+    <script type="module">
+        // Get references to DOM elements
+        const promptInput = document.getElementById('prompt-input');
+        const generateButton = document.getElementById('generate-button');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const imageDisplay = document.getElementById('image-display');
+        const generatedImage = document.getElementById('generated-image');
+        const errorMessage = document.getElementById('error-message');
+        const imageLinkDisplay = document.getElementById('image-link-display'); // New
+        const generatedImageLink = document.getElementById('generated-image-link'); // New
+
+        // StarryAI API Key
+        const STARRYAI_API_KEY = 'lz5O26-oz48o-WZg8pCCi6ck44f32g';
+        const STARRYAI_CREATIONS_URL = 'https://api.starryai.com/creations/';
+
+        // Variable to hold the polling interval ID
+        let pollingIntervalId = null;
+
+        // Event listener for the generate button
+        generateButton.addEventListener('click', generateAnimeImage);
+
+        /**
+         * Asynchronously generates an anime image based on the user's prompt using StarryAI.
+         * Initiates a creation job and then polls for the result.
+         */
+        async function generateAnimeImage() {
+            const prompt = promptInput.value.trim();
+
+            // Validate prompt input
+            if (!prompt) {
+                displayError('Please enter a prompt to generate an image.');
+                return;
+            }
+
+            // Clear previous results and show loading state
+            generatedImage.classList.add('hidden');
+            imageLinkDisplay.style.display = 'none'; // Hide link display
+            generatedImageLink.textContent = ''; // Clear previous link
+            loadingIndicator.style.display = 'block';
+            generateButton.disabled = true; // Disable button during generation
+            hideError(); // Clear any previous errors
+
+            // Clear any existing polling interval
+            if (pollingIntervalId) {
+                clearInterval(pollingIntervalId);
+                pollingIntervalId = null;
+            }
+
+            try {
+                // Prepend "anime style" to the user's prompt
+                const modifiedPrompt = `anime style, ${prompt}`;
+
+                // 1. Initiate the image creation job (POST request)
+                const createPayload = {
+                    model: 'anime_2', // Changed model to 'anime_2'
+                    aspectRatio: 'square',
+                    highResolution: false,
+                    images: 1, // Requesting 1 image for display
+                    steps: 20,
+                    initialImageMode: 'color',
+                    prompt: modifiedPrompt
+                };
+
+                const createResponse = await fetch(STARRYAI_CREATIONS_URL, {
+                    method: 'POST',
+                    headers: {
+                        'accept': 'application/json',
+                        'content-type': 'application/json',
+                        'X-API-Key': STARRYAI_API_KEY
+                    },
+                    body: JSON.stringify(createPayload)
+                });
+
+                if (!createResponse.ok) {
+                    const errorData = await createResponse.json();
+                    console.error('StarryAI Create API Error Response:', errorData);
+                    throw new Error(`StarryAI creation error: ${errorData.error.message || createResponse.statusText}`);
+                }
+
+                const createResult = await createResponse.json();
+                // Ensure we are getting the ID from the correct response object
+                const creationId = createResult.id; 
+
+                if (!creationId) {
+                    throw new Error('Failed to get creation ID from StarryAI. Response missing "id".');
+                }
+
+                // 2. Poll for the image generation status
+                pollingIntervalId = setInterval(async () => {
+                    try {
+                        const getResponse = await fetch(`${STARRYAI_CREATIONS_URL}${creationId}`, {
+                            method: 'GET',
+                            headers: {
+                                'accept': 'application/json',
+                                'X-API-Key': STARRYAI_API_KEY
+                            }
+                        });
+
+                        if (!getResponse.ok) {
+                            const errorData = await getResponse.json();
+                            console.error('StarryAI Get Status API Error Response:', errorData);
+                            clearInterval(pollingIntervalId); // Stop polling on error
+                            displayError(`StarryAI status error: ${errorData.error.message || getResponse.statusText}`);
+                            return;
+                        }
+
+                        const getResult = await getResponse.json();
+                        console.log('StarryAI Polling Response:', getResult);
+
+                        if (getResult.status === 'completed' && getResult.images && getResult.images.length > 0 && getResult.images[0].url) {
+                            const imageUrl = getResult.images[0].url;
+                            generatedImage.src = imageUrl;
+                            generatedImage.classList.remove('hidden');
+                            
+                            // Display the image link
+                            generatedImageLink.href = imageUrl;
+                            generatedImageLink.textContent = imageUrl;
+                            imageLinkDisplay.style.display = 'block';
+
+                            clearInterval(pollingIntervalId); // Stop polling once image is ready
+                            loadingIndicator.style.display = 'none'; // Hide loading
+                            generateButton.disabled = false; // Re-enable button
+                        } else if (getResult.status === 'failed' || getResult.status === 'error') {
+                            clearInterval(pollingIntervalId); // Stop polling on failure
+                            displayError('StarryAI image generation failed. Please try again with a different prompt.');
+                        }
+                        // If status is 'pending' or 'processing', continue polling
+                    } catch (pollError) {
+                        console.error('Error during StarryAI polling:', pollError);
+                        clearInterval(pollingIntervalId); // Stop polling on network error
+                        displayError(`Network error during polling: ${pollError.message}.`);
+                    }
+                }, 5000); // Poll every 5 seconds (adjust as needed)
+
+            } catch (error) {
+                console.error('Error initiating StarryAI image generation:', error);
+                displayError(`Failed to start image generation: ${error.message}.`);
+            } finally {
+                // The button will be re-enabled and loading indicator hidden
+                // when polling completes or an error occurs within the polling loop.
+                // Initial disable is handled here.
+            }
+        }
+
+        /**
+         * Displays an error message to the user.
+         * @param {string} message - The error message to display.
+         */
+        function displayError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            loadingIndicator.style.display = 'none'; // Hide loading on error
+            generateButton.disabled = false; // Re-enable button on error
+            imageLinkDisplay.style.display = 'none'; // Hide link display on error
+        }
+
+        /**
+         * Hides the error message.
+         */
+        function hideError() {
+            errorMessage.textContent = '';
+            errorMessage.style.display = 'none';
+        }
+    </script>
+    <!-- Tenor embed scripts should be loaded at the end of the body for optimal performance -->
+    <script type="text/javascript" async src="https://tenor.com/embed.js"></script>
+</body>
+</html>
